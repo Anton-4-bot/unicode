@@ -330,7 +330,6 @@ def build_apps(roc: str, names: Sequence[str], zig: str, *, skip_build: bool) ->
                 str(source),
                 "--opt=speed",
                 f"--output={paths[name]}",
-                "--no-cache",
             ]
         )
     return paths

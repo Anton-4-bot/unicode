@@ -560,7 +560,6 @@ def run_examples(
                 source_arg,
                 "--opt=speed",
                 f"--output={display_path(binary)}",
-                "--no-cache",
             ],
             env=env,
         )
