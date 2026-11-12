@@ -12,13 +12,15 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        commit:
-          - 4417f4b60358f6eba3d369b22e013595243fe084
-          - e20216cb03510e412f415bd7b65d8a0a94b7c03f
-          - a495502ad9952183708602c56916e19f3df9c554
-          - bf477beeebe1fc788fd66ada9826ccc95c676c6d
-          - 7550f1481f5053094ab39f652ed4e9f76185557d
-          - 7679cc527cc260b65314b277b242cfb93cb98650
+        include:
+          - { commit: f8e33abf9160663cf83480f21feebe77b722c05d, zig: 0.17.0 }
+          - { commit: 7266bc9e51ac36d22b5a6ff9af6b8e5b9226f04f, zig: 0.17.0 }
+          - { commit: 30d8cdb66b5e567a47169940025a885c2dc51a7a, zig: 0.17.0 }
+          - { commit: b650f9fbe48202968a4986eadc69d8eb561b0e64, zig: 0.17.0 }
+          - { commit: 5a8edf4827b3e41121e367ae50f0274ed1a17e3a, zig: 0.17.0 }
+          - { commit: 0e3d210181939631c1e640a3b8aabfc1357a9d41, zig: 0.17.0 }
+          - { commit: a6e6f422800cb20b867586aab8af5804b718c89e, zig: 0.17.1 }
+          - { commit: b7e4e9adbaeb314028697d115ace4fdb47587853, zig: 0.17.1 }
     steps:
       - uses: actions/checkout@v7
         with:
@@ -28,7 +30,7 @@ jobs:
           fetch-depth: 1
       - uses: mlugg/setup-zig@d1434d08867e3ee9daa34448df10607b98908d29
         with:
-          version: 0.17.1
+          version: ${{ matrix.zig }}
           use-cache: false
       - name: Cross-compile roc.exe
         run: |
@@ -52,12 +54,14 @@ jobs:
       fail-fast: false
       matrix:
         commit:
-          - 4417f4b60358f6eba3d369b22e013595243fe084
-          - e20216cb03510e412f415bd7b65d8a0a94b7c03f
-          - a495502ad9952183708602c56916e19f3df9c554
-          - bf477beeebe1fc788fd66ada9826ccc95c676c6d
-          - 7550f1481f5053094ab39f652ed4e9f76185557d
-          - 7679cc527cc260b65314b277b242cfb93cb98650
+          - f8e33abf9160663cf83480f21feebe77b722c05d
+          - 7266bc9e51ac36d22b5a6ff9af6b8e5b9226f04f
+          - 30d8cdb66b5e567a47169940025a885c2dc51a7a
+          - b650f9fbe48202968a4986eadc69d8eb561b0e64
+          - 5a8edf4827b3e41121e367ae50f0274ed1a17e3a
+          - 0e3d210181939631c1e640a3b8aabfc1357a9d41
+          - a6e6f422800cb20b867586aab8af5804b718c89e
+          - b7e4e9adbaeb314028697d115ace4fdb47587853
     defaults:
       run:
         shell: bash {0}
