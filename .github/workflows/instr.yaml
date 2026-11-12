@@ -1,0 +1,60 @@
+name: instrumented roc windows
+on:
+  push:
+    branches: [repro-windows-quote-literal]
+    paths: [.github/workflows/instr.yaml, instr.patch]
+permissions:
+  contents: read
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          path: repro
+      - uses: actions/checkout@v7
+        with:
+          repository: roc-lang/roc
+          ref: 7679cc527cc260b65314b277b242cfb93cb98650
+          path: roc-src
+          fetch-depth: 1
+      - run: cd roc-src && patch -p1 < ../repro/instr.patch
+      - uses: mlugg/setup-zig@d1434d08867e3ee9daa34448df10607b98908d29
+        with:
+          version: 0.17.1
+          use-cache: false
+      - name: Cross-compile roc.exe
+        run: |
+          cd roc-src
+          for i in 1 2 3; do
+            zig build build-release -Dtarget=x86_64-windows-gnu -Dcompiler-version=instr && break
+            [ $i -lt 3 ] || exit 1
+          done
+      - uses: actions/upload-artifact@v4
+        with:
+          name: roc-instr
+          path: roc-src/zig-out/bin/roc.exe
+          retention-days: 3
+  test:
+    needs: build
+    runs-on: windows-2025
+    defaults:
+      run:
+        shell: bash {0}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/download-artifact@v4
+        with:
+          name: roc-instr
+          path: rocbin
+      - name: Run variants
+        run: |
+          ROC="$PWD/rocbin/roc.exe"
+          for cmd in "check platform/Locale.roc --no-cache -j1" "check hello.roc --no-cache -j1"; do
+            echo "::group::roc $cmd"
+            "$ROC" $cmd > out.txt 2>&1; code=$?
+            cat out.txt
+            echo "::endgroup::"
+            echo "RESULT roc $cmd -> exit $code"
+            grep -E '^OVFDBG' out.txt | head -150
+          done

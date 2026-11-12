@@ -1,0 +1,80 @@
+diff -ru a/src/eval/compile_time_finalization.zig b/src/eval/compile_time_finalization.zig
+--- a/src/eval/compile_time_finalization.zig	2026-11-12 21:10:08
++++ b/src/eval/compile_time_finalization.zig	2026-11-12 21:10:28
+@@ -6352,6 +6352,7 @@
+     /// call it came out of.
+     fn failedAt(self: *const DevProgram, point: ?CompileTimeHost.FailurePoint) FailedAt {
+         const known = point orelse return .{};
++        self.debugOverflowChain(known);
+         var failed_at = FailedAt{};
+         if (known.fault == null and known.calls.len != 0) {
+             failed_at.meaning = self.failureMeaningAt(known.calls[0]);
+@@ -6366,6 +6367,57 @@
+             failed_at.loc = line.loc;
+         }
+         return self.slots.withProducerOrigin(failed_at);
++    }
++
++    fn debugOverflowChain(self: *const DevProgram, known: CompileTimeHost.FailurePoint) void {
++        const code_base = @intFromPtr(self.executable.codePtr());
++        std.debug.print("OVFDBG calls={d} fault={?x} code_base={x} code_len={d}\n", .{ known.calls.len, known.fault, code_base, self.executable.code_size });
++        const Distinct = struct { addr: usize, count: usize, first: usize };
++        var distinct: [80]Distinct = undefined;
++        var n: usize = 0;
++        var dropped: usize = 0;
++        for (known.calls, 0..) |addr, i| {
++            var found = false;
++            for (distinct[0..n]) |*d| {
++                if (d.addr == addr) {
++                    d.count += 1;
++                    found = true;
++                    break;
++                }
++            }
++            if (!found) {
++                if (n < distinct.len) {
++                    distinct[n] = .{ .addr = addr, .count = 1, .first = i };
++                    n += 1;
++                } else dropped += 1;
++            }
++        }
++        std.debug.print("OVFDBG distinct={d} dropped={d}\n", .{ n, dropped });
++        for (distinct[0..n]) |d| {
++            const off: i64 = @as(i64, @bitCast(@as(u64, d.addr))) - @as(i64, @bitCast(@as(u64, code_base)));
++            var proc_id: u32 = std.math.maxInt(u32);
++            var proc_start: usize = 0;
++            var proc_stack: u32 = 0;
++            if (off >= 0) {
++                const uoff: usize = @intCast(off);
++                var it = self.codegen.proc_registry.constIterator();
++                while (it.next()) |e| {
++                    const p = e.value_ptr.*;
++                    if (uoff >= p.code_start and uoff < p.code_end) {
++                        proc_id = e.key_ptr.*;
++                        proc_start = p.code_start;
++                        proc_stack = p.stack_alloc;
++                        break;
++                    }
++                }
++            }
++            if (self.statementAt(d.addr - 1)) |line| {
++                const name = if (line.loc.hasLocation()) self.lir_store.sourceFileName(line.loc.file) else "?";
++                std.debug.print("OVFDBG first={d} count={d} off={d} proc={d} proc_start={d} stack_alloc={d} at {s}:{d}:{d}\n", .{ d.first, d.count, off, proc_id, proc_start, proc_stack, name, line.loc.line, line.loc.column });
++            } else {
++                std.debug.print("OVFDBG first={d} count={d} off={d} proc={d} proc_start={d} stack_alloc={d} at ?\n", .{ d.first, d.count, off, proc_id, proc_start, proc_stack });
++            }
++        }
+     }
+ 
+     fn failureMeaningAt(self: *const DevProgram, return_address: usize) ?lir.LIR.FailureMeaning {
+diff -ru a/src/eval/compile_time_host.zig b/src/eval/compile_time_host.zig
+--- a/src/eval/compile_time_host.zig	2026-11-12 21:10:08
++++ b/src/eval/compile_time_host.zig	2026-11-12 21:10:08
+@@ -205,6 +205,7 @@
+ /// call the fault happened inside of.
+ pub fn noteStackOverflow(self: *CompileTimeHost) void {
+     if (signal_handler.takeOverflowFrame()) |frame| {
++        std.debug.print("OVFDBG frame pc={x} fp={x} sp={x} entry_frame={x} depth={d} code={x}..{x} in_gen={}\n", .{ frame.pc, frame.fp, frame.sp, self.entry_frame, self.entry_frame -% frame.sp, self.code_start, self.code_end, self.inGeneratedCode(frame.pc) });
+         self.failure = .{
+             .fault = if (self.inGeneratedCode(frame.pc)) frame.pc else null,
+             .calls = self.generatedCalls(frame.fp, frame.sp),
