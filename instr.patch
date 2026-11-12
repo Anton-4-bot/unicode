@@ -19,7 +19,7 @@ diff -ru a/src/backend/dev/NativeProcCompiler.zig b/src/backend/dev/NativeProcCo
                      job.fragment = try cached.fragment.clone(allocator);
 diff -ru a/src/eval/compile_time_finalization.zig b/src/eval/compile_time_finalization.zig
 --- a/src/eval/compile_time_finalization.zig	2026-11-12 21:10:08
-+++ b/src/eval/compile_time_finalization.zig	2026-11-12 21:59:06
++++ b/src/eval/compile_time_finalization.zig	2026-11-12 22:24:32
 @@ -5,6 +5,7 @@
  //! produced by the post-check pipeline.
  
@@ -115,7 +115,7 @@ diff -ru a/src/eval/compile_time_finalization.zig b/src/eval/compile_time_finali
          const located = if (known.fault) |pc| self.statementAt(pc) else null;
          const statement = located orelse for (known.calls) |address| {
              // A return address follows its call instruction.
-@@ -6366,6 +6414,57 @@
+@@ -6366,6 +6414,78 @@
              failed_at.loc = line.loc;
          }
          return self.slots.withProducerOrigin(failed_at);
@@ -145,6 +145,14 @@ diff -ru a/src/eval/compile_time_finalization.zig b/src/eval/compile_time_finali
 +            }
 +        }
 +        std.debug.print("OVFDBG distinct={d} dropped={d}\n", .{ n, dropped });
++        {
++            const sites = self.codegen.failure_sites.items;
++            var inversions: usize = 0;
++            for (sites[0..sites.len -| 1], 0..) |site, i| {
++                if (site.offset > sites[i + 1].offset) inversions += 1;
++            }
++            std.debug.print("OVFDBG3 failure_sites={d} inversions={d} linked_images={}\n", .{ sites.len, inversions, self.linked_images != null });
++        }
 +        for (distinct[0..n]) |d| {
 +            const off: i64 = @as(i64, @bitCast(@as(u64, d.addr))) - @as(i64, @bitCast(@as(u64, code_base)));
 +            var proc_id: u32 = std.math.maxInt(u32);
@@ -162,6 +170,19 @@ diff -ru a/src/eval/compile_time_finalization.zig b/src/eval/compile_time_finali
 +                        break;
 +                    }
 +                }
++            }
++            if (off >= 0 and proc_id != std.math.maxInt(u32)) {
++                const uoff: usize = @intCast(off);
++                for (self.codegen.failure_sites.items) |site| {
++                    if (site.offset >= proc_start and site.offset < proc_start + 2000) {
++                        std.debug.print("OVFDBG3 site proc={d} offset={d} (rel {d}) meaning={s}\n", .{ proc_id, site.offset, @as(i64, site.offset) - @as(i64, @intCast(uoff)), @tagName(site.meaning) });
++                    }
++                }
++                const code = self.executable.codePtr();
++                const from = uoff -| 40;
++                std.debug.print("OVFDBG3 bytes[{d}..{d}]=", .{ from, uoff + 16 });
++                for (from..uoff + 16) |i| std.debug.print("{x:0>2}", .{code[i]});
++                std.debug.print("\n", .{});
 +            }
 +            if (self.statementAt(d.addr - 1)) |line| {
 +                const name = if (line.loc.hasLocation()) self.lir_store.sourceFileName(line.loc.file) else "?";
