@@ -1,0 +1,38 @@
+name: repro windows quote literal
+on:
+  push:
+    branches: [repro-windows-quote-literal]
+permissions:
+  contents: read
+jobs:
+  repro:
+    name: ${{ matrix.nightly }}
+    runs-on: windows-2025
+    strategy:
+      fail-fast: false
+      matrix:
+        nightly:
+          - nightly-2026-11-10-f7d1f19
+          - nightly-2026-11-11-7679cc5
+          - nightly-2026-11-12-ce942d6
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v7
+      - uses: roc-lang/setup-roc@dd81390553b0a1236aedb61cdd4c0ed7cf7eaec4
+        with:
+          version: nightly
+          nightly-tag: ${{ matrix.nightly }}
+      - run: roc version
+      - name: Run variants
+        run: |
+          status=0
+          for cmd in "check Tag.roc" "test Tag.roc" "check LocaleRepro.roc" "test LocaleRepro.roc" "check hello.roc"; do
+            echo "::group::roc $cmd"
+            roc $cmd --no-cache; code=$?
+            echo "::endgroup::"
+            echo "RESULT roc $cmd -> exit $code"
+            [ $code -eq 0 ] || status=1
+          done
+          exit $status
