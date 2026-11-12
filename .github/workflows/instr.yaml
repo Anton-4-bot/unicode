@@ -50,11 +50,11 @@ jobs:
       - name: Run variants
         run: |
           ROC="$PWD/rocbin/roc.exe"
-          for cmd in "check platform/Locale.roc --no-cache -j1" "check hello.roc --no-cache -j1"; do
+          for cmd in "check platform/Locale.roc --no-cache -j1"; do
             echo "::group::roc $cmd"
             "$ROC" $cmd > out.txt 2>&1; code=$?
             cat out.txt
             echo "::endgroup::"
             echo "RESULT roc $cmd -> exit $code"
-            grep -E '^OVFDBG' out.txt | head -150
+            grep -E '^OVFDBG' out.txt | head -400
           done
