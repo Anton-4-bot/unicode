@@ -13,7 +13,6 @@ jobs:
       matrix:
         nightly:
           - nightly-2026-11-11-7679cc5
-          - nightly-2026-11-12-ce942d6
     defaults:
       run:
         shell: bash
@@ -28,9 +27,9 @@ jobs:
         shell: bash {0}
         run: |
           status=0
-          for cmd in "check hello.roc" "check platform/main.roc" "check platform/Locale.roc" "check pkg2/main.roc" "check pkg1/main.roc" "check tiny/main.roc"; do
+          for cmd in "check platform/Locale.roc --no-cache" "check platform/Locale.roc --no-cache -j1" "check platform/Locale.roc" "check platform/Locale.roc" "check miniL/Locale.roc --no-cache" "check miniLU/Locale.roc --no-cache" "check miniLU/main.roc --no-cache"; do
             echo "::group::roc $cmd"
-            roc $cmd --no-cache > out.txt 2>&1; code=$?
+            roc $cmd > out.txt 2>&1; code=$?
             cat out.txt
             echo "::endgroup::"
             echo "RESULT roc $cmd -> exit $code | $(grep -m1 -E 'crash happened|No errors|error' out.txt)"
