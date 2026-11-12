@@ -5,35 +5,35 @@ on:
 permissions:
   contents: read
 jobs:
-  repro:
-    name: ${{ matrix.nightly }}
+  safe:
+    name: safe ${{ matrix.tag }}
     runs-on: windows-2025
     strategy:
       fail-fast: false
       matrix:
-        nightly:
-          - nightly-2026-11-11-7679cc5
+        tag:
+          - 2026-11-11-7679cc5-safe
+          - 2026-11-11-7679cc5
     defaults:
       run:
-        shell: bash
+        shell: bash {0}
     steps:
       - uses: actions/checkout@v7
-      - uses: roc-lang/setup-roc@dd81390553b0a1236aedb61cdd4c0ed7cf7eaec4
-        with:
-          version: nightly
-          nightly-tag: ${{ matrix.nightly }}
-      - run: roc version
-      - name: Run variants
-        shell: bash {0}
+      - name: Download nightly
         run: |
+          curl -fsSL -o roc.zip "https://github.com/roc-lang/nightlies/releases/download/nightly-${{ matrix.tag }}/roc_nightly-windows_x86_64-${{ matrix.tag }}.zip"
+          mkdir rocdir && cd rocdir && unzip -q ../roc.zip && find . -name 'roc.exe'
+      - name: Run variants
+        run: |
+          ROC=$(find "$PWD/rocdir" -name roc.exe | head -1)
+          "$ROC" version
           status=0
-          for cmd in "check platform/Locale.roc --no-cache" $(for d in variants/*/; do echo "check ${d}Locale.roc --no-cache"; done | tr " " "@"); do
+          for cmd in "check variants/only_Path/Locale.roc --no-cache" "check platform/Locale.roc --no-cache"; do
             echo "::group::roc $cmd"
-            cmd="${cmd//@/ }"
-            roc $cmd > out.txt 2>&1; code=$?
+            "$ROC" $cmd > out.txt 2>&1; code=$?
             cat out.txt
             echo "::endgroup::"
-            echo "RESULT roc $cmd -> exit $code | $(grep -m1 -E 'crash happened|No errors|error' out.txt)"
+            echo "RESULT roc $cmd -> exit $code | $(grep -m1 -E 'crash happened|No errors|error|panic' out.txt)"
             [ $code -eq 0 ] || status=1
           done
           exit $status
