@@ -196,7 +196,7 @@ diff -ru a/src/eval/compile_time_finalization.zig b/src/eval/compile_time_finali
      fn failureMeaningAt(self: *const DevProgram, return_address: usize) ?lir.LIR.FailureMeaning {
 diff -ru a/src/eval/compile_time_host.zig b/src/eval/compile_time_host.zig
 --- a/src/eval/compile_time_host.zig	2026-11-12 21:10:08
-+++ b/src/eval/compile_time_host.zig	2026-11-12 21:10:08
++++ b/src/eval/compile_time_host.zig	2026-11-12 22:54:44
 @@ -205,6 +205,7 @@
  /// call the fault happened inside of.
  pub fn noteStackOverflow(self: *CompileTimeHost) void {
@@ -205,3 +205,33 @@ diff -ru a/src/eval/compile_time_host.zig b/src/eval/compile_time_host.zig
          self.failure = .{
              .fault = if (self.inGeneratedCode(frame.pc)) frame.pc else null,
              .calls = self.generatedCalls(frame.fp, frame.sp),
+@@ -269,6 +270,14 @@
+     windows.ntdll.RtlCaptureContext(&context);
+     var history: windows.UNWIND_HISTORY_TABLE = undefined;
+     @memset(@as(*[@sizeOf(windows.UNWIND_HISTORY_TABLE)]u8, @ptrCast(&history)), 0);
++    std.debug.print("OVFDBG4 unwind start rip={x} rsp={x} rbp={x} code={x}..{x} entry_frame={x}\n", .{ context.Rip, context.Rsp, context.Rbp, self.code_start, self.code_end, self.entry_frame });
++    {
++        const raw: [*]const usize = @ptrFromInt(context.Rsp);
++        var k: usize = 0;
++        while (k < 512 and context.Rsp + k * 8 < self.entry_frame) : (k += 1) {
++            if (self.inGeneratedCode(raw[k])) std.debug.print("OVFDBG4 stack[{d}] @{x} = gen+{d}\n", .{ k, context.Rsp + k * 8, raw[k] - self.code_start });
++        }
++    }
+     while (!self.inGeneratedCode(context.Rip)) {
+         if (context.Rsp >= self.entry_frame) return .{};
+         var image_base: usize = undefined;
+@@ -276,11 +285,14 @@
+             var handler_data: ?*anyopaque = null;
+             var establisher_frame: usize = undefined;
+             _ = windows.ntdll.RtlVirtualUnwind(windows.UNW_FLAG_NHANDLER, image_base, context.Rip, function, &context, &handler_data, &establisher_frame, null);
++            std.debug.print("OVFDBG4 step entry image={x} fn_begin={x} -> rip={x} rsp={x}\n", .{ image_base, image_base + function.BeginAddress, context.Rip, context.Rsp });
+         } else {
+             context.Rip = @as(*const usize, @ptrFromInt(context.Rsp)).*;
+             context.Rsp += @sizeOf(usize);
++            std.debug.print("OVFDBG4 step leaf -> rip={x} rsp={x}\n", .{ context.Rip, context.Rsp });
+         }
+     }
++    std.debug.print("OVFDBG4 stop rip=gen+{d} rsp={x} rbp={x}\n", .{ context.Rip - self.code_start, context.Rsp, context.Rbp });
+     var calls = std.ArrayListUnmanaged(usize).empty;
+     calls.append(self.host_arena.allocator(), context.Rip) catch self.jump(.host_oom);
+     self.appendGeneratedCalls(&calls, context.Rbp, context.Rsp);
