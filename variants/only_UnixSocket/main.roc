@@ -1,0 +1,174 @@
+## A native command-line platform with filesystem, process, network, terminal,
+## SQLite, environment, random, and UTC effects.
+platform ""
+	requires {
+		## The application entry point receives command-line arguments only; the
+		## launcher-supplied program name is available from Env.program_name!.
+		main! : List([Utf8(Str), UnixBytes(List(U8)), WindowsU16s(List(U16))]) => Try({}, [Exit(I32), Interrupted, ..])
+	}
+	exposes [Locale, OsStr, Stderr, System, Tty, UnixSocket, Url]
+	packages {
+		# HTTP data types (Method, Request, Response) come from the shared
+		# roc-lang/http package so apps and other packages using it see the same
+		# nominal types. The platform supplies only the effectful `Http.send!`.
+		http: "https://github.com/roc-lang/http/releases/download/1.0.0/6ZUwqYhCS8PU9Mo6MF7oV82ET2o7KYb57CLKDq4cq4sS.tar.zst",
+	}
+	provides { "roc_main": main_for_host! }
+	hosted {
+		"hosted_child_close": Host.child_close!,
+		"hosted_child_close_stdin": Host.child_close_stdin!,
+		"hosted_child_kill": Host.child_kill!,
+		"hosted_child_pid": Host.child_pid!,
+		"hosted_child_poll": Host.child_poll!,
+		"hosted_child_read": Host.child_read!,
+		"hosted_child_wait": Host.child_wait!,
+		"hosted_child_write": Host.child_write!,
+		"hosted_cmd_exec": Host.cmd_exec!,
+		"hosted_cmd_run": Host.cmd_run!,
+		"hosted_cmd_spawn": Host.cmd_spawn!,
+		"hosted_dir_create": Host.dir_create!,
+		"hosted_dir_create_all": Host.dir_create_all!,
+		"hosted_dir_delete_all": Host.dir_delete_all!,
+		"hosted_dir_delete_empty": Host.dir_delete_empty!,
+		"hosted_dir_list": Host.dir_list!,
+		"hosted_env_create_temp_dir": Host.env_create_temp_dir!,
+		"hosted_env_cwd": Host.env_cwd!,
+		"hosted_env_dict": Host.env_dict!,
+		"hosted_env_exe_path": Host.env_exe_path!,
+		# Environment additions are appended to preserve existing hosted ABI numbering.
+		"hosted_env_program_name": Host.env_program_name!,
+		"hosted_env_set_cwd": Host.env_set_cwd!,
+		"hosted_env_temp_dir": Host.env_temp_dir!,
+		"hosted_env_var": Host.env_var!,
+		# Appends follow the writes, not alphabetical order, so the shared result
+		# type keeps its HostFileDeleteResult name in the generated glue.
+		"hosted_file_append_bytes": Host.file_append_bytes!,
+		"hosted_file_append_utf8": Host.file_append_utf8!,
+		"hosted_file_delete": Host.file_delete!,
+		# New file hosted functions are kept at the end so adding them does not
+		# renumber the generated glue types for existing modules.
+		"hosted_file_hard_link": Host.file_hard_link!,
+		"hosted_file_is_executable": Host.file_is_executable!,
+		"hosted_file_is_readable": Host.file_is_readable!,
+		"hosted_file_is_writable": Host.file_is_writable!,
+		"hosted_file_open_reader": Host.file_open_reader!,
+		# File.Writer: a buffered writer behind a handle.
+		"hosted_file_open_writer": Host.file_open_writer!,
+		"hosted_file_read_bytes": Host.file_read_bytes!,
+		"hosted_file_read_exactly": Host.file_read_exactly!,
+		"hosted_file_read_line": Host.file_read_line!,
+		"hosted_file_read_until": Host.file_read_until!,
+		"hosted_file_read_up_to": Host.file_read_up_to!,
+		"hosted_file_read_utf8": Host.file_read_utf8!,
+		"hosted_file_reader_position": Host.file_reader_position!,
+		"hosted_file_reader_seek": Host.file_reader_seek!,
+		"hosted_file_rename": Host.file_rename!,
+		"hosted_file_size_in_bytes": Host.file_size_in_bytes!,
+		"hosted_file_time_accessed": Host.file_time_accessed!,
+		"hosted_file_time_created": Host.file_time_created!,
+		"hosted_file_time_modified": Host.file_time_modified!,
+		"hosted_file_write_bytes": Host.file_write_bytes!,
+		"hosted_file_write_utf8": Host.file_write_utf8!,
+		"hosted_file_writer_flush": Host.file_writer_flush!,
+		"hosted_file_writer_write_bytes": Host.file_writer_write_bytes!,
+		"hosted_file_writer_write_utf8": Host.file_writer_write_utf8!,
+		"hosted_http_close_body": Host.http_close_body!,
+		"hosted_http_read_body": Host.http_read_body!,
+		# HTTP is likewise kept at the end to avoid renumbering glue types.
+		"hosted_http_send_request": Host.http_send_request!,
+		"hosted_http_send_streaming": Host.http_send_streaming!,
+		"hosted_locale_all": Host.locale_all!,
+		"hosted_locale_get": Host.locale_get!,
+		"hosted_monotonic_now": Host.monotonic_now!,
+		"hosted_path_absolute": Host.path_absolute!,
+		"hosted_path_canonicalize": Host.path_canonicalize!,
+		"hosted_path_copy": Host.path_copy!,
+		"hosted_path_copy_dir": Host.path_copy_dir!,
+		"hosted_path_read_link": Host.path_read_link!,
+		"hosted_path_set_permissions": Host.path_set_permissions!,
+		"hosted_path_symlink": Host.path_symlink!,
+		"hosted_path_type": Host.path_type!,
+		"hosted_random_seed_u32": Host.random_seed_u32!,
+		"hosted_random_seed_u64": Host.random_seed_u64!,
+		"hosted_signal_catch": Host.signal_catch!,
+		"hosted_signal_interrupted_exit_code": Host.signal_interrupted_exit_code!,
+		"hosted_signal_poll": Host.signal_poll!,
+		"hosted_sleep_nanos": Host.sleep_nanos!,
+		"hosted_sqlite_close": Host.sqlite_close!,
+		"hosted_sqlite_columns": Host.sqlite_columns!,
+		"hosted_sqlite_execute": Host.sqlite_execute!,
+		"hosted_sqlite_execute_script": Host.sqlite_execute_script!,
+		"hosted_sqlite_next": Host.sqlite_next!,
+		"hosted_sqlite_open": Host.sqlite_open!,
+		"hosted_sqlite_query": Host.sqlite_query!,
+		"hosted_sqlite_rollback_cleanup": Host.sqlite_rollback_cleanup!,
+		"hosted_stderr_line": Host.stderr_line!,
+		"hosted_stderr_write": Host.stderr_write!,
+		"hosted_stderr_write_bytes": Host.stderr_write_bytes!,
+		"hosted_stdin_bytes": Host.stdin_bytes!,
+		"hosted_stdin_line": Host.stdin_line!,
+		"hosted_stdin_read_to_end": Host.stdin_read_to_end!,
+		"hosted_stdout_line": Host.stdout_line!,
+		"hosted_stdout_write": Host.stdout_write!,
+		"hosted_stdout_write_bytes": Host.stdout_write_bytes!,
+		"hosted_system_target": System.target!,
+		"hosted_tcp_accept": Host.tcp_accept!,
+		# TCP hosted functions are likewise kept at the end to avoid renumbering.
+		"hosted_tcp_connect": Host.tcp_connect!,
+		"hosted_tcp_listen": Host.tcp_listen!,
+		"hosted_tcp_listener_close": Host.tcp_listener_close!,
+		"hosted_tcp_local_port": Host.tcp_local_port!,
+		"hosted_tcp_read_exactly": Host.tcp_read_exactly!,
+		"hosted_tcp_read_line": Host.tcp_read_line!,
+		"hosted_tcp_read_until": Host.tcp_read_until!,
+		"hosted_tcp_read_up_to": Host.tcp_read_up_to!,
+		"hosted_tcp_write": Host.tcp_write!,
+		"hosted_tty_disable_raw_mode": Host.tty_disable_raw_mode!,
+		"hosted_tty_enable_raw_mode": Host.tty_enable_raw_mode!,
+		"hosted_unix_socket_accept": Host.unix_socket_accept!,
+		"hosted_unix_socket_connect": Host.unix_socket_connect!,
+		"hosted_unix_socket_listen": Host.unix_socket_listen!,
+		"hosted_unix_socket_listener_close": Host.unix_socket_listener_close!,
+		"hosted_unix_socket_read_exactly": Host.unix_socket_read_exactly!,
+		"hosted_unix_socket_read_line": Host.unix_socket_read_line!,
+		"hosted_unix_socket_read_until": Host.unix_socket_read_until!,
+		"hosted_unix_socket_read_up_to": Host.unix_socket_read_up_to!,
+		"hosted_unix_socket_write": Host.unix_socket_write!,
+		"hosted_utc_now": Host.utc_now!,
+	}
+	targets: {
+		inputs_dir: "targets/",
+		x64mac: { inputs: ["libhost.a", app] },
+		arm64mac: { inputs: ["libhost.a", app] },
+		x64win: { inputs: ["host.lib", app, "windows_support.lib"] },
+		x64musl: { inputs: ["rcrt1.o", "libhost.a", "libunwind.a", app, "libc.a"] },
+		arm64musl: { inputs: ["rcrt1.o", "libhost.a", "libunwind.a", app, "libc.a"] },
+	}
+
+import Host
+import Locale
+import OsStr
+import Stderr
+import System
+import Tty
+import UnixSocket
+import Url
+
+## The native host removes the invocation name (argv[0]) before calling this
+## function. Applications can read that value separately with Env.program_name!.
+main_for_host! : List(OsStr.OsStr) => I32
+main_for_host! = |args|
+	match main!(args) {
+		Ok({}) => 0
+		Err(Exit(code)) => code
+		Err(Interrupted) => {
+			Tty.disable_raw_mode!() ?? {}
+			Host.signal_interrupted_exit_code!()
+		}
+		Err(other) => {
+			# Leave raw mode first, so the message is not printed without line breaks.
+			Tty.disable_raw_mode!() ?? {}
+			Stderr.line!("Program exited with error: ${Str.inspect(other)}") ?? {}
+			1
+		}
+	}

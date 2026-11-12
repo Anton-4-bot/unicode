@@ -27,8 +27,9 @@ jobs:
         shell: bash {0}
         run: |
           status=0
-          for cmd in "check platform/Locale.roc --no-cache" "check platform/Locale.roc --no-cache -j1" "check platform/Locale.roc" "check platform/Locale.roc" "check miniL/Locale.roc --no-cache" "check miniLU/Locale.roc --no-cache" "check miniLU/main.roc --no-cache"; do
+          for cmd in "check platform/Locale.roc --no-cache" $(for d in variants/*/; do echo "check ${d}Locale.roc --no-cache"; done | tr " " "@"); do
             echo "::group::roc $cmd"
+            cmd="${cmd//@/ }"
             roc $cmd > out.txt 2>&1; code=$?
             cat out.txt
             echo "::endgroup::"
