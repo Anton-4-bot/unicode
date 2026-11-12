@@ -53,8 +53,15 @@ jobs:
           for cmd in "check platform/Locale.roc --no-cache -j1"; do
             echo "::group::roc $cmd"
             "$ROC" $cmd > out.txt 2>&1; code=$?
-            cat out.txt
+            cp out.txt full-out.txt
+            grep -vE '^OVFDBG' out.txt
             echo "::endgroup::"
             echo "RESULT roc $cmd -> exit $code"
-            grep -E '^OVFDBG' out.txt | head -400
+            grep -cE '^OVFDBG' out.txt
           done
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: instr-output
+          path: full-out.txt
+          retention-days: 3
