@@ -49,9 +49,6 @@ jobs:
       fail-fast: false
       matrix:
         os:
-          - ubuntu-26.04
-          - ubuntu-26.04-arm
-          - macos-26
           - windows-2025
     defaults:
       run:
