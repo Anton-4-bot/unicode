@@ -1,0 +1,83 @@
+name: bisect roc windows
+on:
+  push:
+    branches: [repro-windows-quote-literal]
+    paths: [.github/workflows/bisect.yaml]
+permissions:
+  contents: read
+jobs:
+  build:
+    name: build ${{ matrix.commit }}
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        commit:
+          - 4417f4b60358f6eba3d369b22e013595243fe084
+          - e20216cb03510e412f415bd7b65d8a0a94b7c03f
+          - a495502ad9952183708602c56916e19f3df9c554
+          - bf477beeebe1fc788fd66ada9826ccc95c676c6d
+          - 7550f1481f5053094ab39f652ed4e9f76185557d
+          - 7679cc527cc260b65314b277b242cfb93cb98650
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          repository: roc-lang/roc
+          ref: ${{ matrix.commit }}
+          path: roc-src
+          fetch-depth: 1
+      - uses: mlugg/setup-zig@d1434d08867e3ee9daa34448df10607b98908d29
+        with:
+          version: 0.17.1
+          use-cache: false
+      - name: Cross-compile roc.exe
+        run: |
+          cd roc-src
+          for i in 1 2 3; do
+            zig build build-release -Dtarget=x86_64-windows-gnu -Dcompiler-version=bisect-${{ matrix.commit }} && break
+            [ $i -lt 3 ] || exit 1
+          done
+          ls -la zig-out/bin
+      - uses: actions/upload-artifact@v4
+        with:
+          name: roc-${{ matrix.commit }}
+          path: roc-src/zig-out/bin/roc.exe
+          retention-days: 3
+  test:
+    name: test ${{ matrix.commit }}
+    needs: build
+    if: always()
+    runs-on: windows-2025
+    strategy:
+      fail-fast: false
+      matrix:
+        commit:
+          - 4417f4b60358f6eba3d369b22e013595243fe084
+          - e20216cb03510e412f415bd7b65d8a0a94b7c03f
+          - a495502ad9952183708602c56916e19f3df9c554
+          - bf477beeebe1fc788fd66ada9826ccc95c676c6d
+          - 7550f1481f5053094ab39f652ed4e9f76185557d
+          - 7679cc527cc260b65314b277b242cfb93cb98650
+    defaults:
+      run:
+        shell: bash {0}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/download-artifact@v4
+        with:
+          name: roc-${{ matrix.commit }}
+          path: rocbin
+      - name: Run variants
+        run: |
+          ROC="$PWD/rocbin/roc.exe"
+          "$ROC" version
+          status=0
+          for cmd in "check variants/only_Path/Locale.roc --no-cache" "check platform/Locale.roc --no-cache" "check hello.roc --no-cache"; do
+            echo "::group::roc $cmd"
+            "$ROC" $cmd > out.txt 2>&1; code=$?
+            cat out.txt
+            echo "::endgroup::"
+            echo "RESULT roc $cmd -> exit $code | $(grep -m1 -E 'crash happened|No errors|error|panic' out.txt)"
+            [ $code -eq 0 ] || status=1
+          done
+          exit $status

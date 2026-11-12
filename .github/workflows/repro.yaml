@@ -2,6 +2,7 @@ name: repro windows quote literal
 on:
   push:
     branches: [repro-windows-quote-literal]
+    paths: [.github/workflows/repro.yaml]
 permissions:
   contents: read
 jobs:
